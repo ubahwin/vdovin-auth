@@ -7,7 +7,7 @@ import (
 
 type SessionScope int64
 
-func (scope SessionScope) IsAllowed(scopeAccess SessionScopeEntry) bool {
+func (scope SessionScope) IsAllowed(scopeAccess SessionScope) bool {
 	return int64(scope)&int64(scopeAccess) != 0
 }
 

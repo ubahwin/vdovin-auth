@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/ubahwin/vdovin-auth/internal/core/model"
 	"net/http"
@@ -32,7 +31,6 @@ type SessionStorage interface {
 //}
 
 type QRSessionStorage interface {
-
 	/// Return QR code
 	Create(scope model.SessionScope, redirectURI url.URL) string
 
@@ -66,9 +64,8 @@ func (a *Authorizer) Authorize(scope model.SessionScope, redirectURI url.URL) (s
 }
 
 func (a *Authorizer) FindActiveSession(token, code string) error {
-
 	// Проверка токена доверенного приложения
-	_, err := a.sessionStorage.Get(token)
+	userSession, err := a.sessionStorage.Get(token)
 	if err != nil {
 		return err
 	}
@@ -79,6 +76,11 @@ func (a *Authorizer) FindActiveSession(token, code string) error {
 		return err
 	}
 
+	// Доступ к данным, который запрашивается от стороннего сервиса, должен быть у доверенного приложения
+	if userSession.Scope.IsAllowed(qrSession.Scope) {
+		return errors.New("scope must be equal")
+	}
+
 	// Создаём новую сессию для сервиса, это уже другая сессия, не для доверенного приложения
 	session, err := a.sessionStorage.Create(uuid.New(), qrSession.Scope)
 	if err != nil {
@@ -86,10 +88,13 @@ func (a *Authorizer) FindActiveSession(token, code string) error {
 	}
 
 	// Посылаем на `redirect_uri` `access_token`
+	return a.SendAccessToken(session.AccessToken, qrSession.RedirectURI.String()) // TODO: create independent service for send request
+}
 
-	// TODO: create independent service for send request
+func (a *Authorizer) SendAccessToken(accessToken, redirectURI string) error {
 	data := map[string]string{
-		"access_token": session.AccessToken,
+		"access_token": accessToken,
+		"scope":        "basic,phone",
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -97,10 +102,7 @@ func (a *Authorizer) FindActiveSession(token, code string) error {
 		return err
 	}
 
-	fmt.Println(qrSession.RedirectURI.String())
-	fmt.Println(qrSession.RedirectURI)
-
-	req, err := http.NewRequest("POST", qrSession.RedirectURI.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", redirectURI, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}

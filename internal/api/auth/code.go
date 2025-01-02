@@ -6,10 +6,10 @@ import (
 )
 
 type CodeReq struct {
-	/// Only trusted applications can have this token
+	// Only trusted applications can have this token
 	Token string `json:"token"`
 
-	/// QR code transform to this code in trusted applications
+	// QR code transform to this code in trusted applications
 	Code string `json:"code"`
 }
 

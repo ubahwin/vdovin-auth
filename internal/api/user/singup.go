@@ -39,7 +39,7 @@ func (g *Group) SignUp(_ *api.Context, req *SignUpReq) (*SignUpResp, int) {
 		return &SignUpResp{
 			Success: false,
 			Comment: err.Error(),
-		}, http.StatusInternalServerError
+		}, http.StatusOK
 	}
 
 	return &SignUpResp{Success: true, UserID: *userID}, http.StatusOK

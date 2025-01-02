@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/shuryak/api-wrappers/pkg/router"
 	"github.com/ubahwin/vdovin-auth/internal/api"
 	authapi "github.com/ubahwin/vdovin-auth/internal/api/auth"
 	"github.com/ubahwin/vdovin-auth/internal/api/user"
@@ -11,6 +10,7 @@ import (
 	sessionstorage "github.com/ubahwin/vdovin-auth/internal/storage/session"
 	userstorage "github.com/ubahwin/vdovin-auth/internal/storage/user"
 	"github.com/ubahwin/vdovin-auth/pkg/phasher"
+	"github.com/ubahwin/vdovin-auth/pkg/router"
 	"log"
 	"net/http"
 	"os"
@@ -42,13 +42,13 @@ func main() {
 		router.NewGroup("/user",
 			router.POST("/signUp", userAPIGroup.SignUp),
 			router.POST("/signIn", userAPIGroup.SignIn),
-		).SetErrHandler(api.ErrHandler),
-		router.GET("/auth", authAPIGroup.Auth).SetErrHandler(api.ErrHandler),
-		router.GET("/code", authAPIGroup.Code).SetErrHandler(api.ErrHandler),
+		).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),
+		router.POST("/auth", authAPIGroup.Auth).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),
+		router.POST("/code", authAPIGroup.Code).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),
 	)
 
 	srv := &http.Server{
-		Addr:    "127.0.0.1:8080",
+		Addr:    "0.0.0.0:8080",
 		Handler: r,
 	}
 

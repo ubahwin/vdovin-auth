@@ -51,22 +51,25 @@ func (m *Manager) Register(user *model.User) (*uuid.UUID, error) {
 	return m.userStorage.Create(user)
 }
 
-func (m *Manager) SignIn(username, password string, scope model.SessionScope) (*model.Session, error) {
+func (m *Manager) SignIn(username, password string) (*model.Session, *model.User, error) {
 	user, err := m.userStorage.GetByUsername(username)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ok, err := m.passwordHasher.Compare(user.PasswordHash, password)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !ok {
-		return nil, ErrInvalidPassword
+		return nil, nil, ErrInvalidPassword
 	}
 
-	return m.sessionStorage.Create(user.ID, scope)
+	scope := model.SessionScope(model.SessionScopeAuthenticatorEntry)
+	session, err := m.sessionStorage.Create(user.ID, scope)
+
+	return session, user, err
 }
 
 var ErrInvalidPassword = errors.New("invalid password")

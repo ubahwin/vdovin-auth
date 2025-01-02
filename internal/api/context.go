@@ -30,6 +30,22 @@ func (ctx *Context) SetHTTPRequest(r *http.Request) {
 	ctx.r = r
 }
 
+func (ctx *Context) SetHeader(key string, value string) {
+	ctx.w.Header().Set(key, value)
+}
+
+func (ctx *Context) GetHeader(key string) string {
+	return ctx.r.Header.Get(key)
+}
+
+func (ctx *Context) StopChain() {
+	ctx.cancel()
+}
+
+func (ctx *Context) GetMethod() string {
+	return ctx.r.Method
+}
+
 func (ctx *Context) Decode(dest interface{}) error {
 	err := json.NewDecoder(ctx.r.Body).Decode(dest)
 	if err != nil {
