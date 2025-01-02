@@ -1,0 +1,251 @@
+openapi: 3.0.0
+info:
+  title: EduService OpenAPI
+  version: 1.0.0
+  contact: {}
+  description: Спецификация для серверной части EduService
+paths:
+  /user/signUp:
+    post:
+      summary: Регистрация пользователя
+      description: Создает нового пользователя с переданными данными.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Имя пользователя.
+                  example: "ubah"
+                password:
+                  type: string
+                  description: Пароль пользователя.
+                  example: "qwerty"
+                first_name:
+                  type: string
+                  description: Имя.
+                  example: "Иван"
+                last_name:
+                  type: string
+                  description: Фамилия.
+                  example: "Вдовин"
+                phone:
+                  type: string
+                  description: Номер телефона.
+                  example: "9803532589"
+                email:
+                  type: string
+                  description: Электронная почта.
+                  example: "ivan_vdovin@yandex.ru"
+              required:
+                - username
+                - password
+                - first_name
+                - last_name
+                - phone
+                - email
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Успешная регистрация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Результат выполнения запроса.
+                    example: true
+                  user_id:
+                    type: string
+                    description: Уникальный идентификатор пользователя.
+                    example: "7c558bee-0cde-4b25-9b72-21758976452f"
+  /user/signIn:
+    post:
+      # Краткое описание операции
+      summary: "Вход пользователя"
+      # Подробное описание, что делает операция
+      description: "Аутентификация пользователя и возврат access и refresh токенов."
+      requestBody:
+        # Указывает, что тело запроса обязательно
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Поле для имени пользователя
+                username:
+                  type: string
+                  example: "Ubawhin"
+                # Поле для пароля пользователя
+                password:
+                  type: string
+                  format: password
+                  example: "your_password_here"
+              required:
+                - username
+                - password
+      tags:
+        - auth
+      responses:
+        '200':
+          # Описание успешного ответа
+          description: "Успешный ответ с токенами аутентификации и данными пользователя."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # Флаг успешности операции
+                  success:
+                    type: boolean
+                    example: true
+                  # Access токен
+                  access_token:
+                    type: string
+                    example: "EORLIZaEHi..."
+                  # Refresh токен
+                  refresh_token:
+                    type: string
+                    example: "CkwCTpyRF7..."
+                  # Время истечения токена
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: "2025-01-02T15:50:48.390935832Z"
+                  # Данные пользователя
+                  user:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                        example: "Ubawhin"
+                      first_name:
+                        type: string
+                        example: "Иван"
+                      last_name:
+                        type: string
+                        example: "Вдовин"
+                      phone:
+                        type: string
+                        example: "980803093"
+                      email:
+                        type: string
+                        format: email
+                        example: "i.vdovin@youdrive.com"
+        '401':
+          # Описание ответа при ошибке аутентификации
+          description: "Неавторизовано - Неверные учетные данные."
+        '400':
+          # Описание ответа при ошибке в запросе
+          description: "Некорректный запрос - Отсутствуют или некорректные поля."
+
+  /auth:
+    post:
+      # Краткое описание операции
+      summary: "Авторизация через QR-код"
+      # Подробное описание, что делает операция
+      description: "Процедура авторизации с использованием QR-кода."
+      requestBody:
+        # Указывает, что тело запроса обязательно
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # URL для перенаправления после успешной авторизации
+                redirect_uri:
+                  type: string
+                  format: uri
+                  example: "http://45.9.74.253:8081/token"
+                # Область доступа, запрашиваемая у пользователя
+                scope:
+                  type: string
+                  example: "basic,phone"
+              required:
+                - redirect_uri
+                - scope
+      tags:
+        - auth
+      responses:
+        '200':
+          # Описание успешного ответа
+          description: "Успешный ответ с QR-кодом."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # QR-код для авторизации
+                  qr_code:
+                    type: string
+                    example: "vV531Zc43aushFatQ71GRgq80KsrAeKLNItGQn..."
+        '400':
+          # Описание ответа при ошибке в запросе
+          description: "Некорректный запрос - Отсутствуют или некорректные поля."
+
+  /code:
+    post:
+      tags:
+        - auth
+      summary: "Проверка кода авторизации"
+      description: "Валидация кода авторизации с использованием предоставленного токена."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "EORLIZaEHi..."
+                code:
+                  type: string
+                  example: "ECIeoskx5DB7sHwJ9KYvE3SfH5gn..."
+              required:
+                - token
+                - code
+      responses:
+        '200':
+          description: "Код успешно проверен."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: "Код не найден."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  comment:
+                    type: string
+                    example: "not found"
+
+security: []
+servers:
+  - url: 'http://45.9.74.253:8080'
+    description: ''
+    variables: {}
+components:
+  links: {}
+  callbacks: {}
+  schemas: {}
+tags:
+  - name: auth
