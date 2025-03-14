@@ -1,0 +1,435 @@
+@startuml
+top to bottom direction
+package cmd/app{
+annotation cmd/app {
+-const qrCodeLength: INT
+-const qrCodeTTL: 
+-const accessTokenLength: INT
+-const refreshTokenLength: INT
+-const accessTokenTTL: 
+
+-main()
+}
+}
+package internal/api/auth{
+annotation internal/api/auth {
+
+
++New(log *Logger, authorizer *Authorizer): *Group
+}
+class AuthReq {
++RedirectURI: string
++Scope: string
++Validate(_ *Context): error
+}
+class AuthResp {
++QRCode: string
+
+}
+class Group {
+-authorizer: *Authorizer
+-log: *Logger
++Auth(_ *Context, req *AuthReq): *AuthResp, int
+}
+class CodeResp {
++Success: bool
++Comment: string
+
+}
+class CodeReq {
++Token: string
++Code: string
++Validate(_ *Context): error
+}
+}
+package internal/api/user{
+annotation internal/api/user {
+
+
++New(log *Logger, um *Manager): *Group
+}
+class SignInReq {
++Username: string
++Password: string
++Validate(_ *Context): error
+}
+class SignInResp {
++Success: bool
++Comment: string
++AccessToken: string
++RefreshToken: string
++ExpiresAt: Time
++User: UserResp
+
+}
+class UserResp {
++Username: string
++FirstName: string
++LastName: string
++Phone: string
++Email: string
+
+}
+class SignUpResp {
++Success: bool
++UserID: UUID
++Comment: string
+
+}
+class SignUpReq {
++Username: string
++Password: string
++FirstName: string
++LastName: string
++Phone: string
++Email: string
++Validate(_ *Context): error
+}
+class UserInfoReq {
++AccessToken: string
++Validate(_ *Context): error
+}
+class UserInfoResp {
++Success: bool
++Comment: string
++User: map[string]interface
+
+}
+class Group {
+-userManager: *Manager
+-log: *Logger
++SignIn(_ *Context, req *SignInReq): *SignInResp, int
++SignUp(_ *Context, req *SignUpReq): *SignUpResp, int
++UserInfo(_ *Context, req *UserInfoReq): *UserInfoResp, int
+}
+}
+package internal/api{
+annotation internal/api {
+
+
++ErrHandler(_ *Context, err error): interface, int
++CORS(ctx *Context)
+}
+interface Validator{
++Validate(ctx *Context): error
+}
+class Context {
++: Context
+-cancel: CancelFunc
+-w: ResponseWriter
+-r: *Request
++SetCancellableCtx(baseCtx Context, cancel CancelFunc)
++SetHTTPWriter(w ResponseWriter)
++SetHTTPRequest(r *Request)
++SetHeader(key string, value string)
++GetHeader(key string): string
++StopChain()
++GetMethod(): string
++Decode(dest interface): error
++WriteResponse(statusCode int, resp interface): error
+}
+class ErrorResponse {
++Error: string
+
+}
+}
+package internal/core/auth{
+annotation internal/core/auth {
+
+
++NewAuthorizer(ss SessionStorage, qrs QRSessionStorage): *Authorizer
+}
+interface SessionStorage{
++Create(id UUID, scope SessionScope): *Session, error
++Get(accessToken string): *Session, error
++Refresh(refreshToken string): *Session, error
++Delete(accessToken string): error
+}
+interface QRSessionStorage{
++Create(scope SessionScope, redirectURI URL): string
++Get(qrCode string): *QRSession, error
+}
+class Authorizer {
+-sessionStorage: SessionStorage
+-qrStorage: QRSessionStorage
++Authorize(scope SessionScope, redirectURI URL): string, error
++FindActiveSession(token string, code string): error
++SendAccessToken(authID string, accessToken string, redirectURI URL): error
+}
+}
+package internal/core/model{
+annotation internal/core/model {
+-const SessionScopePhoneEntry: SessionScopeEntry
+-const SessionScopeEmailEntry: SessionScopeEntry
+-const SessionScopeAuthenticatorEntry: SessionScopeEntry
+-const SessionScopeBasicInfoEntry: SessionScopeEntry
+-var sessionScopeEntryNames: 
+-var ErrInvalidScopeString: 
++ParseSessionScope(scopeStr string): SessionScope, error
+}
+class QRSession {
++AuthID: string
++RedirectURI: URL
++Scope: SessionScope
+
+}
+class SessionScopeEntry {
+
+
+}
+class SessionScope {
+
++IsAllowed(scopeAccess SessionScope): bool
+}
+class Session {
++UserID: UUID
++Scope: SessionScope
++AccessToken: string
++RefreshToken: string
++AccessTokenTTL: Duration
++UpdatedAt: Time
++CreatedAt: Time
+
+}
+class User {
++ID: UUID
++Username: string
++Password: string
++PasswordHash: string
++FirstName: string
++LastName: string
++Phone: string
++Email: string
++_: interface{}
++GetAvailableValues(scopeAccess SessionScope): map[string]interface
+}
+}
+package internal/core/user{
+annotation internal/core/user {
+
+-var ErrInvalidPassword: 
++NewManager(us UserStorage, ss SessionStorage, ph PasswordHasher): *Manager
+}
+interface UserStorage{
++Create(user *User): *UUID, error
++GetByID(id UUID): *User, error
++GetByUsername(username string): *User, error
++UpdateByID(user User): error
++DeleteByID(id UUID): error
+}
+interface SessionStorage{
++Create(id UUID, scope SessionScope): *Session, error
++Get(accessToken string): *Session, error
++Refresh(refreshToken string): *Session, error
++Delete(accessToken string): error
+}
+interface PasswordHasher{
++Hash(password string): string, error
++Compare(hash string, password string): bool, error
+}
+class Manager {
+-userStorage: UserStorage
+-sessionStorage: SessionStorage
+-passwordHasher: PasswordHasher
++Register(user *User): *UUID, error
++SignIn(username string, password string): *Session, *User, error
++UserInfo(accessToken string): map[string]interface, error
+}
+}
+package internal/storage/qr{
+annotation internal/storage/qr {
+
+-var ErrNotFound: 
++NewMem(qrCodeLength int, qrTTL Duration): *Mem
+}
+class QRSession {
++ID: UUID
++RedirectURI: URL
++Scope: SessionScope
++CreatedAt: Time
+
+}
+class Mem {
+-sessions: map[string]QRSession
+-mu: Mutex
+-qrCodeLength: int
+-qrTTL: Duration
++Create(scope SessionScope, redirectURI URL): string
++Get(qrCode string): *QRSession, error
+}
+}
+package internal/storage/session{
+annotation internal/storage/session {
+
+-var ErrNotFound: 
++NewMem(accessTokenLength int, refreshTokenLength int, accessTokenTTL Duration): *Mem
+}
+class Session {
++UserID: UUID
++Scope: SessionScope
++AccessToken: string
++RefreshToken: string
++AccessTokenTTL: Duration
++UpdatedAt: Time
++CreatedAt: Time
+
+}
+class Mem {
+-sessions: map[string]Session
+-mu: Mutex
+-accessTokenLength: int
+-refreshTokenLength: int
+-accessTokenTTL: Duration
++Create(id UUID, scope SessionScope): *Session, error
++Get(accessToken string): *Session, error
++Refresh(refreshToken string): *Session, error
++Delete(accessToken string): error
+}
+}
+package internal/storage/user{
+annotation internal/storage/user {
+
+-var ErrNotFound: 
++NewMem(): *Mem
+}
+class User {
++ID: UUID
++Username: string
++PasswordHash: string
++FirstName: string
++LastName: string
++Phone: string
++Email: string
+
+}
+class Mem {
+-users: map[UUID]User
+-mu: Mutex
++Create(user *User): *UUID, error
++GetByID(id UUID): *User, error
++GetByUsername(username string): *User, error
++UpdateByID(user User): error
++DeleteByID(id UUID): error
+}
+class Postgres {
+
+
+}
+}
+package pkg/phasher{
+annotation pkg/phasher {
+
+
++NewBcrypt(): *Bcrypt
+}
+class Bcrypt {
+
++Hash(password string): string, error
++Compare(hash string, password string): bool, error
+}
+}
+package pkg/query{
+annotation pkg/query {
+
+
++NewDecoder(v Values): *Decoder
+}
+class Decoder {
+-values: Values
++Decode(dest interface): error
+}
+}
+package pkg/router{
+annotation pkg/router {
+
+
++NewGroup(patternPrefix string, handlers ... *Handler[T]): *Handler[T]
++POST(pattern string, handlers ... ): *Handler[T]
++OPTIONS(pattern string, handlers ... HandlerFunc[T]): *Handler[T]
++GET(pattern string, handlers ... ): *Handler[T]
++SGET(pattern string, handlers ... HandlerFunc[T]): *Handler[T]
+-handle(r *Router, method string, pattern string, opts *HandlerOptions[T], handlers ... HandlerFunc[T])
+-handleWithDecode(r *Router, method string, pattern string, opts *HandlerOptions[T], handlers ... )
++New(log *Logger): *Router
+}
+interface Context{
++SetCancellableCtx(ctx Context, cancel CancelFunc)
++SetHTTPWriter(w ResponseWriter)
++SetHTTPRequest(r *Request)
++Decode(dest interface): error
++WriteResponse(statusCode int, resp interface): error
+}
+interface Validator[T]{
++Validate(ctx T): error
+}
+interface Registrable{
+-register(r *Router)
+}
+class Handler[T] {
+-opts: HandlerOptions[T]
+-regFn: regFn[T]
++SetErrHandler(errHandler ErrHandlerFunc[T]): *Handler[T]
++SetPreHandler(preHandlers ... HandlerFunc[T]): *Handler[T]
+-register(r *Router)
+}
+class regFn[T] {
+
+
+}
+class HandlerOptions[T] {
+-errHandler: ErrHandlerFunc[T]
+-preHandlers: []HandlerFunc[T]
+-patternPrefix: string
+
+}
+class HandlerFunc[T] {
+
+
+}
+class PreparedHandlerFunc[T,S,U] {
+
+
+}
+class ErrHandlerFunc[T] {
+
+
+}
+class Router {
+-mux: *ServeMux
+-log: *Logger
++Add(handlers ... Registrable)
++ServeHTTP(w ResponseWriter, req *Request)
+}
+}
+package pkg/strrand{
+annotation pkg/strrand {
+
+
++RandSeq(length int): []byte
++RandSeqStr(length int): string
+}
+}
+"Group" --> "Authorizer"
+"SignInResp" --> "UserResp"
+"Group" --> "Manager"
+"QRSession" --> "SessionScope"
+"Session" --> "SessionScope"
+"QRSession" --> "SessionScope"
+"Session" --> "SessionScope"
+"Handler[T]" --> "regFn[T]"
+"Handler[T]" --> "HandlerOptions[T]"
+"HandlerOptions[T]" --> "HandlerFunc[T]"
+"HandlerOptions[T]" --> "ErrHandlerFunc[T]"
+"AuthReq" --|> "Validator"
+"CodeReq" --|> "Validator"
+"SignInReq" --|> "Validator"
+"SignUpReq" --|> "Validator"
+"UserInfoReq" --|> "Validator"
+"Context" --|> "Context"
+"Mem" --|> "QRSessionStorage"
+"Mem" --|> "SessionStorage"
+"Mem" --|> "SessionStorage"
+"Mem" --|> "UserStorage"
+"Bcrypt" --|> "PasswordHasher"
+"Handler[T]" --|> "Registrable"
+@enduml

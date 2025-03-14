@@ -32,7 +32,7 @@ func (storage *Mem) Create(user *model.User) (*uuid.UUID, error) {
 
 	id := uuid.New()
 
-	storage.users[user.ID] = User{
+	storage.users[id] = User{
 		ID:           id,
 		Username:     user.Username,
 		PasswordHash: user.PasswordHash,

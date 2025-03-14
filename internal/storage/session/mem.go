@@ -59,7 +59,7 @@ func (storage *Mem) Create(id uuid.UUID, scope model.SessionScope) (*model.Sessi
 	storage.sessions[accessToken] = session
 
 	return &model.Session{
-		UserID:         session.UserID,
+		UserID:         id,
 		Scope:          session.Scope,
 		AccessToken:    session.AccessToken,
 		RefreshToken:   session.RefreshToken,

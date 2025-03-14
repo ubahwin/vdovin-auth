@@ -1,8 +1,11 @@
 package model
 
-import "net/url"
+import (
+	"net/url"
+)
 
 type QRSession struct {
+	AuthID      string
 	RedirectURI url.URL
 	Scope       SessionScope
 }

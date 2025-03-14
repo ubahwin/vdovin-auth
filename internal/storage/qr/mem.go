@@ -64,6 +64,7 @@ func (storage *Mem) Get(qrCode string) (*model.QRSession, error) {
 	}
 
 	return &model.QRSession{
+		AuthID:      qrCode,
 		RedirectURI: session.RedirectURI,
 		Scope:       session.Scope,
 	}, nil

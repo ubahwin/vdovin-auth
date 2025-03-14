@@ -14,3 +14,19 @@ type User struct {
 
 	_ struct{}
 }
+
+func (u *User) GetAvailableValues(scopeAccess SessionScope) map[string]interface{} {
+	values := map[string]interface{}{}
+
+	switch {
+	case scopeAccess.IsAllowed(SessionScope(SessionScopeBasicInfoEntry)):
+		values["first_name"] = u.FirstName
+		values["last_name"] = u.LastName
+	case scopeAccess.IsAllowed(SessionScope(SessionScopePhoneEntry)):
+		values["phone"] = u.Phone
+	case scopeAccess.IsAllowed(SessionScope(SessionScopeEmailEntry)):
+		values["email"] = u.Email
+	}
+
+	return values
+}

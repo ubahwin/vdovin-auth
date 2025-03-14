@@ -72,4 +72,18 @@ func (m *Manager) SignIn(username, password string) (*model.Session, *model.User
 	return session, user, err
 }
 
+func (m *Manager) UserInfo(accessToken string) (map[string]interface{}, error) {
+	session, err := m.sessionStorage.Get(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := m.userStorage.GetByID(session.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user.GetAvailableValues(session.Scope), nil
+}
+
 var ErrInvalidPassword = errors.New("invalid password")

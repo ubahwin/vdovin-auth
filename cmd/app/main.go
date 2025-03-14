@@ -42,6 +42,7 @@ func main() {
 		router.NewGroup("/user",
 			router.POST("/signUp", userAPIGroup.SignUp),
 			router.POST("/signIn", userAPIGroup.SignIn),
+			router.POST("/info", userAPIGroup.UserInfo),
 		).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),
 		router.POST("/auth", authAPIGroup.Auth).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),
 		router.POST("/code", authAPIGroup.Code).SetPreHandler(api.CORS).SetErrHandler(api.ErrHandler),

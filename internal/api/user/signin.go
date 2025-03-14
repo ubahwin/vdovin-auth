@@ -12,14 +12,15 @@ type SignInReq struct {
 }
 
 type SignInResp struct {
-	Success      bool         `json:"success"`
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-	ExpiresAt    time.Time    `json:"expires_at"`
-	User         UserResponse `json:"user"`
+	Success      bool      `json:"success"`
+	Comment      string    `json:"comment,omitempty"`
+	AccessToken  string    `json:"access_token,omitempty"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
+	ExpiresAt    time.Time `json:"expires_at,omitempty"`
+	User         UserResp  `json:"user,omitempty"`
 }
 
-type UserResponse struct {
+type UserResp struct {
 	Username  string `json:"username"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -34,7 +35,10 @@ func (req SignInReq) Validate(_ *api.Context) error {
 func (g *Group) SignIn(_ *api.Context, req *SignInReq) (*SignInResp, int) {
 	session, user, err := g.userManager.SignIn(req.Username, req.Password)
 	if err != nil {
-		return &SignInResp{Success: false}, http.StatusOK
+		return &SignInResp{
+			Success: false,
+			Comment: err.Error(),
+		}, http.StatusOK
 	}
 
 	return &SignInResp{
@@ -42,7 +46,7 @@ func (g *Group) SignIn(_ *api.Context, req *SignInReq) (*SignInResp, int) {
 		AccessToken:  session.AccessToken,
 		RefreshToken: session.RefreshToken,
 		ExpiresAt:    session.UpdatedAt.Add(session.AccessTokenTTL),
-		User: UserResponse{
+		User: UserResp{
 			Username:  user.Username,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,

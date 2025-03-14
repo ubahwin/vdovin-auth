@@ -31,10 +31,10 @@ type SessionStorage interface {
 //}
 
 type QRSessionStorage interface {
-	/// Return QR code
+	// Return QR code
 	Create(scope model.SessionScope, redirectURI url.URL) string
 
-	/// Return redirect_uri if QR is active
+	// Return redirect_uri if QR is active
 	Get(qrCode string) (*model.QRSession, error)
 }
 
@@ -78,7 +78,7 @@ func (a *Authorizer) FindActiveSession(token, code string) error {
 
 	// Доступ к данным, который запрашивается от стороннего сервиса, должен быть у доверенного приложения
 	if userSession.Scope.IsAllowed(qrSession.Scope) {
-		return errors.New("scope must be equal")
+		return errors.New("scope error")
 	}
 
 	// Создаём новую сессию для сервиса, это уже другая сессия, не для доверенного приложения
@@ -87,12 +87,13 @@ func (a *Authorizer) FindActiveSession(token, code string) error {
 		return err
 	}
 
-	// Посылаем на `redirect_uri` `access_token`
-	return a.SendAccessToken(session.AccessToken, qrSession.RedirectURI.String()) // TODO: create independent service for send request
+	// Посылаем на `redirect_uri`, `access_token`, `auth_id` (qr_code)
+	return a.SendAccessToken(qrSession.AuthID, session.AccessToken, qrSession.RedirectURI) // TODO: create independent service for send request
 }
 
-func (a *Authorizer) SendAccessToken(accessToken, redirectURI string) error {
-	data := map[string]string{
+func (a *Authorizer) SendAccessToken(authID, accessToken string, redirectURI url.URL) error {
+	data := map[string]interface{}{
+		"auth_id":      authID,
 		"access_token": accessToken,
 		"scope":        "basic,phone",
 	}
@@ -102,7 +103,7 @@ func (a *Authorizer) SendAccessToken(accessToken, redirectURI string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", redirectURI, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", redirectURI.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
